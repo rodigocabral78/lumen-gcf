@@ -22,5 +22,11 @@ Homestead.json
 /.vagrant
 .phpunit.result.cache
 
+###
 composer.lock
 /.idea
+/.vscode
+/.phpintel
+/.project
+/.buildpath
+/.settings
