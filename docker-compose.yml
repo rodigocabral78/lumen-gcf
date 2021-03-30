@@ -1,0 +1,160 @@
+version: "3"
+
+#
+# [ volumes definition ]
+#
+# creates Docker volumes which can be mounted by other containers too e.g. for backup
+#
+volumes:
+  dbdata:
+    name: gcf_dbdata
+
+#
+# [ networks definition ]
+#
+# networks:
+#   frontend:
+#     driver: bridge
+#   backend:
+#     driver: bridge
+
+services:
+  #
+  # [ server stack ]
+  #
+  # - php-cli
+  # - mysql
+  # - adminer
+  #
+  php-cli:
+    container_name: gcf-php-cli
+    hostname: gcf-php-cli
+    build:
+      context: ./.docker/php-cli
+      dockerfile: Dockerfile
+      args:
+        - distribution=debian
+        - release=9
+        - codename=stretch
+        - variant=cli
+        - php_version=7.0.33
+    image: rodrixcornell/php:7.0.33-mysql-cli-stretch
+    # image: php:${php_version:+${php_version}-}mysql-${variant:+${variant}-}${codename:+${codename}}
+
+    cpu_shares: 128
+    mem_reservation: 128m
+    mem_limit: 256m
+    memswap_limit: -1
+    privileged: false
+    restart: always
+    tty: true
+
+    user: ${UID}:${GID}
+
+    env_file:
+    - .env
+
+    environment:
+      docker: 'true'
+
+    ports:
+      - 8000:8000
+
+    extra_hosts:
+      - cubatao:172.17.131.4
+      - divisa:172.17.131.24
+      - jaragua:172.17.131.44
+      - ararangua:172.17.135.110
+      - paracatu:172.17.135.11
+
+    working_dir: /opt/app-root/src
+
+    volumes:
+      - ./.docker/php-cli/php.ini-development:/usr/local/etc/php/php.ini
+      - .:/opt/app-root/src
+      # - files:/opt/app-root/src/public/files
+
+    depends_on:
+      - mysql
+
+    links:
+      - mysql
+
+    network_mode: bridge
+    # networks:
+    #   - backend
+
+    # command: php -welsS [::]:8080 -t public public/index.php
+    command: bash -c ".docker/./wait-for-it.sh mysql:3306 -s -t 0 -- php -welsS [::]:8000 -t public"
+
+  mysql:
+    container_name: gcf-mysql
+    hostname: gcf-mysql
+    image: mariadb:10.5.9
+    # image: mysql:8.0.23
+    # image: mysql:5.7.33
+
+    cpu_shares: 128
+    mem_reservation: 128m
+    mem_limit: 256m
+    memswap_limit: -1
+    privileged: true
+    restart: always
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'false'
+      MYSQL_RANDOM_ROOT_PASSWORD: 'false'
+
+    ports:
+      - 3306:3306
+      # - 33060:33060
+
+    working_dir: /var/lib/mysql
+
+    volumes:
+      - ./.docker/mysql/initial_data:/docker-entrypoint-initdb.d
+      - ./.docker/mysql/custom.cnf:/etc/mysql/conf.d/custom.cnf
+      - dbdata:/var/lib/mysql
+
+    network_mode: bridge
+    # networks:
+    #   - backend
+
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --explicit_defaults_for_timestamp=true --default_time_zone=-04:00 --default-authentication-plugin=mysql_native_password
+
+  adminer:
+    container_name: gcf-adminer
+    hostname: gcf-adminer
+    image: adminer:4.8.0
+
+    cpu_shares: 128
+    mem_reservation: 128m
+    mem_limit: 256m
+    memswap_limit: -1
+    privileged: true
+    restart: always
+
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+      ADMINER_DESIGN: pepa-linha-dark
+      # ADMINER_DESIGN: mancave
+      # ADMINER_DESIGN: galkaev
+      # ADMINER_DESIGN: hydra
+
+    ports:
+      - 33061:8080
+
+    depends_on:
+      - mysql
+
+    links:
+      - mysql
+
+    network_mode: bridge
+    # networks:
+    #   - frontend
+    #   - backend

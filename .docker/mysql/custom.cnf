@@ -1,0 +1,10 @@
+[mysql]
+prompt=\\R:\\m:\\s (\\u@\\h) [\\d] -> \
+
+[mysqld]
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+init-connect='SET NAMES utf8mb4'
+explicit_defaults_for_timestamp=true
+default_time_zone='-04:00'
+default_time_zone='America/Manaus'
