@@ -12,7 +12,9 @@
 */
 
 $router->get('/', function () use ($router) {
-	return $router->app->version();
+	// return $router->app->version();
+	echo "<pre>{$router->app->version()}</pre>";
+	phpinfo();
 });
 
 // API route group
